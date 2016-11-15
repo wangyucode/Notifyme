@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">通蜜</string>
+    <string name="version_text">通蜜 V %.1f</string>
+    <string name="about_me"><u>wycode.cn</u></string>
+</resources>
