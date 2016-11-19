@@ -19,17 +19,27 @@
         android:layout_marginBottom="96dp"
         android:text="开始同步" />
 
-    <TextView
-        android:id="@+id/tv_query_number"
+    <ScrollView
+        android:id="@+id/sv_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/btn_connect"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="16dp"
+        android:scrollbars="vertical"
         android:background="#000"
-        android:padding="4dp"
-        android:text="请点击同步"
-        android:textColor="@android:color/white" />
+        android:layout_marginBottom="16dp"
+        android:scrollbarThumbVertical="@color/colorAccent"
+        android:fadeScrollbars="false"
+        android:scrollbarAlwaysDrawVerticalTrack="true"
+        android:scrollbarSize="4dp">
+        <TextView
+            android:id="@+id/tv_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="4dp"
+            android:text="请点击同步"
+            android:textColor="@android:color/white" />
+    </ScrollView>
+
 
     <TextView
         android:id="@+id/tv_version"
@@ -45,6 +55,6 @@
         android:layout_above="@id/tv_version"
         android:layout_marginBottom="6dp"
         android:text="@string/about_me"
-        android:textColor="@color/colorPrimary" />
+        android:textColor="#3f51b5" />
 
 </RelativeLayout>
