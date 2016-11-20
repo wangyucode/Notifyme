@@ -25,5 +25,8 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     compile 'com.android.support:appcompat-v7:24.2.0'
+    compile 'com.android.volley:volley:1.0.0'
+    compile 'com.alibaba:fastjson:1.1.54.android'
+    compile 'com.lzy.net:okgo:2.1.1'
     testCompile 'junit:junit:4.12'
 }
