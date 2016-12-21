@@ -1,5 +1,6 @@
 package cn.wycode.notifyme;
 
+import android.annotation.TargetApi;
 import android.app.Notification;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -12,17 +13,21 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.service.notification.StatusBarNotification;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
 import android.util.Log;
@@ -50,7 +55,7 @@ import java.util.UUID;
 
 import okhttp3.Call;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, TextWatcher {
 
     private final String TAG = getClass().getSimpleName();
 
@@ -96,11 +101,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onResume() {
         super.onResume();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (isSavePower()) {
+                showConfirmPowerDialog();
+            }
+        }
         isEnabledNLS = isEnabled();
         Log.d(TAG, "isEnabledNLS = " + isEnabledNLS);
         if (!isEnabledNLS) {
             showConfirmDialog();
         }
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private boolean isSavePower() {
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        return !pm.isIgnoringBatteryOptimizations("cn.wycode.notifyme");
+
     }
 
     private boolean isEnabled() {
@@ -142,18 +159,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void bindListener() {
         btnConnect.setOnClickListener(this);
         tvWycode.setOnClickListener(this);
+        tvHint.addTextChangedListener(this);
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_connect:
-                if(btnConnect.getText().equals("开始同步")) {
+                if (btnConnect.getText().equals("开始同步")) {
                     tvHint.append("\n正在启动服务...");
                     doBindService();
-                }else{
+                } else {
                     tvHint.append("\n正在关闭服务...");
                     doUnbindService();
+
                 }
                 break;
             case R.id.tv_wycode:
@@ -189,7 +208,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Log.d(TAG, "onResponse--->" + s);
                         ResultBean<NotificationAccount> account = null;
                         try {
-                            account = JsonUtil.toJavaBean(s,NotificationAccount.class);
+                            account = JsonUtil.toJavaBean(s, NotificationAccount.class);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -260,6 +279,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .create().show();
     }
 
+    @TargetApi(Build.VERSION_CODES.M)
+    private void showConfirmPowerDialog() {
+        new AlertDialog.Builder(this)
+                .setMessage("请关闭通蜜的电池优化")
+                .setTitle("请确认关闭")
+                .setIconAttribute(android.R.attr.alertDialogIcon)
+                .setCancelable(true)
+                .setPositiveButton(android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                try {
+                                    startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        })
+                .create().show();
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+        svContent.post(new Runnable() {
+            public void run() {
+                svContent.fullScroll(ScrollView.FOCUS_DOWN);
+            }
+        });
+    }
+
     class NotificationBroadcastReceiver extends BroadcastReceiver {
 
         @Override
@@ -275,20 +333,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
             }
-            String when = new SimpleDateFormat("MM月dd日 mm分ss秒").format(new Date(sbn.getPostTime()));
+            String when = new SimpleDateFormat("MM月dd日 HH:mm:ss").format(new Date(sbn.getPostTime()));
             String title = notification.extras.getString(Notification.EXTRA_TITLE);
             String content = notification.extras.getString(Notification.EXTRA_TEXT);
             tvHint.append("\n\n收到通知来自：" + appName);
             tvHint.append("\n时间：" + when);
             tvHint.append("\n标题：" + title);
             tvHint.append("\n内容：" + content);
-            svContent.post(new Runnable() {
-                public void run() {
-                    svContent.fullScroll(ScrollView.FOCUS_DOWN);
-                }
-            });
 
-            addNotification(appName, when, title, content);
+            if (mIsBound) {
+                addNotification(appName, when, title, content);
+            }
         }
     }
 
@@ -307,7 +362,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Log.d(TAG, "onResponse--->" + s);
 
                         notifyNumber++;
-                        tvHint.append(String.format("\n已同步%d条消息",notifyNumber));
+                        tvHint.append(String.format("\n已同步%d条消息", notifyNumber));
 
                     }
                 });
